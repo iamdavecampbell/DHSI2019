@@ -1,0 +1,407 @@
+---
+title: "Day 1 Part 2 ML 4 DH"
+author: "Dave Campbell"
+date: '2019-06-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r Locate, eval = FALSE, echo = FALSE}
+#Find a location on your computer:
+getwd()
+#Set a location on your computer:
+setwd("/Users/iamdavecampbell/Dropbox/DHSI-2019")
+
+```
+
+# Obtaining data
+
+- Regular expression detour while obtaining text data from Gutenberg
+- Sentiment analysis
+
+ 
+# Regular Expressions
+This is a way of finding text character patterns.  It allows much more generality than the basic command+f or ctrl+f find function in a word document.  We can search for exact matches, matches with conditions, matches with a few options,...
+
+RStudio has a great set of [cheatsheets]{https://www.rstudio.com/resources/cheatsheets/} for R.  The two main approaches are the newer [stringr library]{https://github.com/rstudio/cheatsheets/raw/master/strings.pdf} that comes with serious street cred and the 'classic'  [regular expressions]{https://github.com/rstudio/cheatsheets/raw/master/regex.pdf} for purists that want to use clunky but functional base R (without any libraries).  The differences are semantic.  They both can do the same things.
+
+```{r}
+#load our libraries
+library(stringr)
+library(tidyr)
+```
+ 
+ 
+ 
+### Gutenberg collection
+The _gutenbergr_ library allows us to download a lot of books. See them all here:
+
+```{r}
+library(gutenbergr)
+gutenberg_works()
+```
+
+If we are interested in a specific author we can just use a logical expression to find the author if we're confident about an exact match
+ 
+ 
+ 
+ 
+# Gutenberg library
+Find the Jane Austen books on Gutenberg by searching through the _author_ variable
+
+```{r, eval = FALSE}
+# logical expression uses double equal sign '==' 
+gutenberg_works(author == "Austen, Jane")
+gutenberg_works(author == "Austen")
+
+# stringr detect a specified pattern
+gutenberg_works(str_detect(author, "Austen, Jane"))
+gutenberg_works(str_detect(author, "Austen"))
+
+#Also find a specific pattern
+gutenberg_works(grepl(author,pattern =  "Austen, Jane"))
+gutenberg_works(grepl(author,pattern =  "Austen"))
+
+```
+
+#### Let's find Herbert George Wells books!
+To make sure that we obtain only the author that we want books, let's count the unique authors that were found.
+
+```{r, echo = FALSE, eval = FALSE}
+gutenberg_works(str_detect(author, "Wells"))  %>% count(author)
+
+
+gutenberg_works(str_detect(author, "Wells, H. G."))  %>% count(author)
+
+```
+
+
+#### Searching without a care in the capital
+
+To ignore cases the stringr sintax looks messier, but it is doable, we just need to put it inside _fixed_
+
+```{r, eval = FALSE}
+gutenberg_works(str_detect(title, fixed("war of the worlds", ignore_case=TRUE)))  
+
+
+```
+
+
+### Fancier Searching
+
+If we are interested in finding books by the Bronte family but aren't sure how the Gutenberg data dealt with accents, or married names then we need some search flexibility.
+
+Symbols have special meaning:
+
+
+|Syntax     | Description  |
+| ------------- |-------------|
+|\\d  | Digits, 0,1,2 ... 9            |
+|\\D  |  Non-digits           |
+|\\s  |  Space           |
+|\\S  | Not Space            |
+|\\w  | Word    |
+|\\W  | Not Word        |
+|\\t  | Tab            |
+|\\n  | New line         |
+|\\>  |  End of a word   |
+|\\<  |  Beginning of a word   |
+|^  |   Beginning of the string          |
+|$  | End of the string            |
+|\\   | Escape special characters, e.g. \\\\ is \\, \\\+ is "\+"             |
+|\|  | Alternation match. e.g. (e\|a)n matches "en" and "an"    |
+|.  | Any character, except \\n or line terminator        |
+|[ab]  |   a or b     (the brackets are important)     |
+|[^ab]  |  Any character except a and b           |
+|[0-9]  |  All digit           |
+|[A-Z]  | All uppercase A to Z letters           |
+|[a-z]  | All lowercase a to z letters          |
+|[A-z]  | All uppercase and lowercase a to z letters           |
+|[:alnum:]  |  Alphanumeric characters: [:alpha:] and [:digit:]           |
+|[:alpha:]  | Alphabetic characters: [:lower:] and [:upper:]           |
+|[:blank:]  | Blank characters: e.g. space, tab        |
+|[:cntrl:]  | Control characters          |
+|[:digit:]  | Digit, 0,1,2 ... 9           |
+|[:graph:]  | Graphical characters: [:alnum:] and [:punct:]           |
+|[:lower:]  |  Lowercase letters           |
+|[:punct:]  |  Punctuation characters |
+|i+  | i occurs at least 1 time            |
+|i*  | i occurs at least 0 time        |
+|i?  | i occurs 0 or 1 time            |
+|i{n}  | i occurs n times in a row             |
+|$i\{1,6\}$  | i occurs between 1 and 6 times in a row     |
+|$o\{n,\}$  | o occurs at least n times in a row             |
+| ------------- |-------------|
+
+
+### Back to Macbeth
+```{r, eval = FALSE}
+
+#finding acts:
+Macbeth = gutenberg_download(1533)
+Macbeth %>% 
+  unnest_tokens(      output = ngrams,input = text, token = "ngrams",n=2)  %>%
+  count(ngrams) %>%
+  filter(grepl("act (i|x|v|l|c|d|m)", ngrams))
+
+#finding acts with a roman numeral followed by anything but the letter n
+Macbeth %>% 
+  unnest_tokens(      output = ngrams,input = text, token = "ngrams",n=2)  %>%
+  count(ngrams) %>%
+  filter(grepl("act (i|x|v|l|c|d|m)[^n]", ngrams))
+
+#finding acts with any number of roman numerals only up to the end of the word
+Macbeth %>% 
+  unnest_tokens(      output = ngrams,input = text, token = "ngrams",n=2)  %>%
+  count(ngrams) %>%
+  filter(grepl("act (i|x|v|l|c|d|m)+\\>", ngrams))
+
+```
+
+
+Regular expressions take practice and a lot of trial and error.
+### Find authors using initials:
+
+If we are interested in finding books by a set of authors who may have published with a set of initials rather than spelling out their names (for example Robert Louis Stevenson vs H.G. Wells) some search flexibility.  Find all of such authors in the gutenberger collection and filter the results by those who published more than 40 books.  Feeling like you know what you're doing?  Make a plot of the number of books per author
+
+```{r, eval = FALSE, echo = FALSE}
+
+gutenberg_works(str_detect(author, "\\(.*\\)"))  %>% count(author)%>%
+  filter(n>40)
+
+
+
+gutenberg_works(str_detect(author, "\\(.*\\)"))  %>% count(author)%>%
+  filter(n>40)%>%
+  # start the plotting part
+  ggplot(aes(author,n),size = 7) +   # recycling code
+  geom_col() +                      # this is the plot type
+  xlab(NULL) +                      # this turns off the x label since it makes things look messy
+  theme_minimal() +                 # style choice
+  coord_flip()     
+
+```
+
+
+
+# Downloading books from Gutenberger
+
+```{r, eval = FALSE}
+
+  JaneBooks = gutenberg_works(author == "Austen, Jane") %>%
+      gutenberg_download(meta_fields = "title")
+# meta fields lets us keep track of additional information, here I'm keeping the book title name
+
+  JaneBooks = gutenberg_download(gutenberg_works(author == "Austen, Jane"))
+  
+```
+ 
+
+
+
+
+# Fancy Regular Expressions via Sentiment Analysis
+
+Sentiment Analysis is all about comparing words in a document to words in a sentiment list.  There are 3 main lexicons:
+
+* `AFINN` from [Finn Årup Nielsen](http://www2.imm.dtu.dk/pubdb/views/publication_details.php?id=6010),
+* `bing` from [Bing Liu and collaborators](https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html), and
+* `nrc` from [Saif Mohammad and Peter Turney](http://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm).
+
+
+AFINN gives words a score between -5 and +5 rating its severity of positive or negative sentiment.
+
+```{r, eval = FALSE}
+get_sentiments("afinn")
+```
+
+bing gives a binary value of positive or negative.  Neutral words are not in the list.
+```{r, eval = FALSE}
+get_sentiments("bing")
+
+```
+
+
+nrc puts each word into a sentiment category.
+```{r, eval = FALSE}
+get_sentiments("nrc")
+```
+
+Note that different strategies will gives different results.
+
+
+Let's take a look at the sentiment as it evolves through Jane Austin Books.  Here the code gets a bit more advanced by coming up with new tibble columns for the book chapter and the line number.  The chapter is determined by first grouping by book (focusing on books individually) and then counting the number of times "chapter" comes up.  
+
+
+```{r, eval = FALSE}
+
+tidy_books = JaneBooks %>%
+  group_by(title) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]", 
+                                                 ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+
+```
+
+We can filter out the _joy_ sentiment from the nrc lexicon and then look at how often those particular words show up in "Emma":
+
+```{r, eval = FALSE}
+
+nrc_joy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+
+tidy_books %>%
+  filter(title == "Emma") %>%
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE)
+
+```
+
+If a book starts out with darker themes that are overcome as the story progresses the total sentiment is probably a boring zero.  If we look at every single word, then we get a very erratic story for sentiment.  Somewhere in the middle is an appropriate amount of text to consider in one shot.  Here let's go with 80 lines at a time.  We match the individual token words with words in  the bing sentiment lexicon through an _inner join_ statement.  Then we just need to count the positive or negative sentiments in chunks of 80 lines.
+
+
+```{r, eval = FALSE}
+
+jane_austen_sentiment = tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(title, index = linenumber %/% 80, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+```
+
+Now we can plot the net sentiment within 80 line chunks  over the duration of each book:
+
+```{r, eval = FALSE}
+
+library(ggplot2)
+
+ggplot(jane_austen_sentiment,     # data to use
+       aes(index, sentiment, fill = title)) +   # variables: index[line number], sentiment, and colour each book individually
+  geom_col(show.legend = FALSE) +            # style
+  facet_wrap(~title, ncol = 2, scales = "free_x")  # colouring
+
+```
+
+
+
+
+#### AFINN
+
+Let's take a look at AFINN.
+
+```{r, eval = FALSE}
+
+jane_austen_afinn = tidy_books %>%
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(title, index = linenumber %/% 80) %>% 
+  summarise(sentiment = sum(score)) %>% 
+  mutate(method = "AFINN")
+
+
+ggplot(jane_austen_afinn,     # data to use
+       aes(index, sentiment, fill = title)) +   # variables: index[line number], sentiment, and colour each book individually
+  geom_col(show.legend = FALSE) +            # style
+  facet_wrap(~title, ncol = 2, scales = "free_x")  # split by title
+
+```
+
+In chunks of 80 lines at a time, the results are pretty similar.  For shorter data chunks the results may be very different, for example when looking at Twitter data. 
+
+
+
+
+
+
+#### nrc
+
+Let's take a look at nrc.  Although these words are split into several categories, those categories also can be grouped into negative and positive. 
+
+```{r, eval = FALSE}
+
+jane_austen_nrc = tidy_books %>%
+  inner_join(get_sentiments("nrc")) %>%
+    filter(sentiment %in% c("positive", "negative"))%>%
+                    mutate(method = "NRC") %>%
+  count(title, index = linenumber %/% 80, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+  
+  
+
+ggplot(jane_austen_nrc,     # data to use
+       aes(index, sentiment, fill = title)) +   # variables: index[line number], sentiment, and colour each book individually
+  geom_col(show.legend = FALSE) +            # style
+  facet_wrap(~title, ncol = 2, scales = "free_x")  # split by title
+
+```
+
+
+#### More nrc categories
+
+
+```{r, eval = FALSE}
+
+
+
+jane_austen_nrc_full = tidy_books %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(title, index = linenumber %/% 80, sentiment)%>%
+   mutate(method = "NRC")
+
+
+
+  
+ggplot(jane_austen_nrc_full, aes(index, n,color = sentiment)) +
+     geom_line() + 
+  facet_grid(~ sentiment)+  
+  facet_wrap(~title, ncol = 2, scales = "free_x")  # split by title
+
+```
+
+
+
+
+
+
+## Inference:
+
+We can also look at the distribution of nrc values within Jane Austin Books to see if they are about the same.  First let's find the counts of nrc sentiment categories for the first chapter of all Jane Austen's books:
+
+
+```{r, eval = FALSE}
+JaneJustBooks = tidy_books %>%
+  inner_join(get_sentiments("nrc")) %>%
+  filter(!grepl("(Complete Project)|(Letters of Jane)", title))%>% #exclude the search items using !
+  filter(chapter==1)
+  
+```
+
+The hypothesis that we can test is that the distribution of sentiment categories is the same within each Chapter 1 of Jane Austen.  Differences in counts just relate to the number of words in each book.  Let's look at occurence of these words across her books.  If the books have the same sentiment in their first chapter then readers will know what to expect when they pick one of her books.
+
+
+```{r, eval = FALSE}
+JaneJustBooks %>% 
+  count(title, sentiment)%>%
+  spread(sentiment,n)
+```
+
+
+
+To formally test this hypothesis against the alternative (that the distribution of sentiment categories differs across books) we use Pearson Chi-squared independence test.
+
+```{r, eval = FALSE}
+chisq.test(JaneJustBooks$title,JaneJustBooks$sentiment)
+
+```
+
+
+
+

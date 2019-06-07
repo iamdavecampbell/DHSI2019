@@ -1,0 +1,339 @@
+---
+title: "Day 1 Part 1 ML 4 DH"
+author: "Dave Campbell"
+date: '2019-06-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Introduction to Machine Learning in the Digital Humanities
+
+## Day 1
+
+# Today
+
+
+- Finding some data  (rvest for html, rtweet for Twitter, gutenbergr for books)
+- Data structures
+- Tidy text format
+- Regular Expressions
+- Sentiment analysis
+- Inference
+- Show some plots and look at sentiment
+
+
+# By the end of today you should be able to
+
+- Tell friends at the pub that you know how to use R 
+- Obtain books from Gutenberg and other online sources 
+- Convert books into a machine learning friendly data format
+- Automatically decide who is the antagonist / protagonist from a Shakespeare play
+- Understand that everything, including machine analysis, has limits
+
+
+
+## Getting started:
+Visit [rstudio.cloud](https://rstudio.cloud) for easy access to RStudio.  Sign up... It's free (for now).  If you already have Rstudio on your machine, great!  Use whichever version you like.
+
+
+Parts of RStudio:
+
+- Console (stuff runs here)
+- Editor (stuff is written here but can also be sent to the console)
+- Plots (output is visualized here)
+- Help (full of useful insights)
+- History (maybe not what you think)
+
+
+```{r Locate, eval = FALSE}
+#Find a location on your computer:
+getwd()
+#Set a location on your computer:
+setwd("/Users/iamdavecampbell/Dropbox/DHSI-2019")
+
+```
+
+R is a big fancy programmable calculator that can compute with more than just numbers.  We can get R to give us the answer to life, the universe, and everything in it:
+
+```{r, eval = FALSE}
+#it can do math
+38+4
+6*7
+#it can handle text
+paste("forty","two")
+
+# we can define variables
+answer = 42
+# we can use logical expressions
+answer > 30
+answer == 40
+
+#the same can be done for text:
+tip = "don't panic"
+# but we can look inside the text to see if a pattern exists
+grepl(tip, pattern = "panic") 
+
+```
+
+
+The functionality of R is improved with some of the 15,000+ software libraries
+Installing libraries (only needed to be done once):
+```{r InstallLibraries,  eval=FALSE}
+#Install one library:
+install.packages("dplyr")
+#Install a few at a time:
+install.packages(c("tidytext","gutenbergr","ggplot2","stringr"))
+```
+
+
+
+Loading libraries (do this every time you start R):
+```{r LoadLibraries}
+#Load one library at a time:
+library(dplyr)
+library(tidytext)
+library(gutenbergr)
+library(ggplot2)
+library(stringr)
+
+#Advanced Move: load a few at a time:
+lapply(c("tidytext","gutenbergr","ggplot2","stringr"),require, character.only = TRUE)
+
+```
+
+
+## Text as data
+
+R has a few ways of dealing with text, we'll consider:
+- a string of characters (words as data) 
+- a factor (categorical variable) 
+
+Computers see text in a strange way.  They use may encode text with special symbols for spaces and line breaks.  This is a feature not a bug!
+
+
+#### Act 1 of MacBeth
+More MacBeth available from [Gutenberg]{http://www.gutenberg.org/files/1533/1533-0.txt}.
+
+```{r MacBeth}
+
+MacBethAct1Scene1 = c("ACT I
+
+SCENE I. An open Place.
+
+ Thunder and Lightning. Enter three Witches.
+
+FIRST WITCH.
+When shall we three meet again?
+In thunder, lightning, or in rain?
+
+SECOND WITCH.
+When the hurlyburly’s done,
+When the battle’s lost and won.
+
+THIRD WITCH.
+That will be ere the set of sun.
+
+FIRST WITCH.
+Where the place?
+
+SECOND WITCH.
+Upon the heath.
+
+THIRD WITCH.
+There to meet with Macbeth.
+
+FIRST WITCH.
+I come, Graymalkin!
+
+SECOND WITCH.
+Paddock calls.
+
+THIRD WITCH.
+Anon.
+
+ALL.
+Fair is foul, and foul is fair:
+Hover through the fog and filthy air.")
+
+
+```
+
+Run this code and take a look at what is in the _MacBethAct1Scene1_ object.  The \\n is the machine's way of including a line break.  In some cases tabs or white space will show up as \\t.  Humans (and machines) need to decide on a meaningful partition of text.  Eventually we will compare the sentiment or examine the themes or topics of discourse.  This implies examining or comparing specific words within a text.  We call the smallest segment of interest a token.  For Shakespeare it may make sense to consider lines, stanzas, scenes, or acts, but if we want to know about recurrent themes or passages, then our token should be words, or possibly n-grams (short groups of words).  We will reconstruct our data into an easier analytic format for the machine, that also keeps track of Act, Scene, Line.
+
+
+
+#### Split by line:
+We can split it up by line using _strsplit_ to chop the scene into individual lines since lines are important.  We put it all into a data structure that keeps track of the line number, act number and scene.
+
+```{r MacBethLines}
+MacBethAct1Scene1 = unlist(strsplit(MacBethAct1Scene1,split="\n"))
+Act1Scene1Lines_df = tibble(line = 1:38, text = MacBethAct1Scene1, act = 1, scene = 1)
+
+```
+A tibble is a data structure that stores all of the information in a way that can be easily retrieved and processed.  If we had more scenes we could come up with a way for the machine put the right values in for Act and Scence by counting up everytime the play has the word "ACT" and "SCENE".
+
+Next we want to subdivide the text lines into tokens defined as words, sentences, some arbitrary pattern.  
+
+
+```{r MacBethSplits, eval = FALSE}
+
+unnest_tokens(Act1Scene1Lines_df,output = word,input = text, token = "words")
+
+```
+Piping \%\>\% sends the output from one operation as the main argument to the next operator.  It is a readable way to keep track of what has been done to the data to put it in a format that will work.
+Note that the tibble structure changes a bit as we go through.  In some of the these we may have more than one token per line number or we may not have any tokens for a line.
+
+
+```{r, eval = FALSE}
+Act1Scene1Lines_df %>% 
+  unnest_tokens(       output = word,input = text, token = "words") # same result but using piping
+
+Act1Scene1Lines_df %>% 
+  unnest_tokens(   output = sentence,input = text, token = "sentences") # token is a sentence
+
+Act1Scene1Lines_df %>% 
+  unnest_tokens(     output = ngrams,input = text, token = "ngrams", n = 2) # token is a bigram
+
+Act1Scene1Lines_df %>% 
+  unnest_tokens(      output = witchy,input = text, token = "regex", pattern = "WITCH.") # token is everytime the WITCH. is mentioned.  
+
+
+# Bring in the whole play and split into acts:
+
+library(gutenbergr)
+Macbeth = gutenberg_download(1533)
+acts = Macbeth %>% 
+  unnest_tokens(      output = scenes,input = text, token = "regex", pattern = "ACT") # Act tokens 
+
+# a cheap way to show the entire (untruncated) text is to use one of:
+#acts
+#View(acts) 
+#c(acts)
+
+# Split the play into Scenes
+scenes = Macbeth %>% 
+  unnest_tokens(      output = scenes,input = text, token = "regex", pattern = "SCENE") # Scene tokens 
+
+```
+
+
+We can also count the number of occurences of a token. For example if we split the entire play into words we can count how many acts there are by counting occurences of the word "act".  Aren't machines awesome?
+
+We will pipe the word tokens into dplyr's _count_ to tally all individual tokens. Then we just use _subset_ to get rid of counts for all the other words and just focus on how many times the word "act" appears.
+
+```{r , eval = FALSE}
+#Find the counts of the most common words:
+Macbeth %>% 
+  unnest_tokens(      output = individualwords,input = text, token = "words")  %>%
+  count(individualwords,sort = TRUE)
+
+
+#Specifically find just the count for the word "act"
+Macbeth %>% 
+  unnest_tokens(      output = individualwords,input = text, token = "words")  %>%
+  count(individualwords) %>%
+  subset(individualwords == "act")
+```
+
+This is where some context helps.  Machines are good at doing what we tell them to do, it's up to us to make sure that we're asking them to do the right things.  You will almost always get an answer from a machine.  Knowing if you should trust the machine is the challenge - and the main reason behind sharing code and using a reproducible research workflow based on a scripting language. 
+
+It will be better to use a regular expression to find occurences of "act" followed by a potential roman numeral.  To do this we start with building tokens as groups of 2 consecutive words (a.k.a. bigrams or ngrams where n=2).  We will use a regular expression search to find "act" followed by one of the roman numerals (i,x,v,l,c,d, or m).  We don't specify how many numerals so we might still be introducing problems here, but at least we will be able to see the output.  We will come back to regular expressions as a fancy searching tool, but for now notice that we group together roman numeral candidates in brackets () and use | to mean _or_.
+
+
+```{r , eval = FALSE}
+#Find the occurences of "act" followed by a space
+Macbeth %>% 
+  unnest_tokens(      output = ngrams,input = text, token = "ngrams",n=2)  %>%
+  count(ngrams) %>%
+  filter(grepl("act ", ngrams))
+
+#Find the occurences of "act" followed by a a letter that could be a roman numeral
+Macbeth %>% 
+  unnest_tokens(      output = ngrams,input = text, token = "ngrams",n=2)  %>%
+  count(ngrams) %>%
+  filter(grepl("act (i|x|v|l|c|d|m)", ngrams))
+```
+The _filter_ command is looking for a logical (TRUE/FALSE) condition.  The condition is determined through _grepl_ (more about this later) to look for the pattern in quotes.
+
+
+#### Who has the most lines in MacBeth?
+
+Take a look at the raw text from Act 1 Scene 1.  Which token format is most useful for figuring out who has the most conversation segments?  Remember that unless the task takes way too long, it's ok to get the machine to count a lot of things that don't matter to us. 
+
+
+```{r, echo = FALSE, eval= FALSE}
+
+Macbeth %>% 
+  unnest_tokens(      output = sentences,input = text, token = "sentences")  %>%
+  count(sentences,sort=TRUE)
+  
+```
+
+
+#### Maggie's Farm
+Bob Dylan [video]{https://www.youtube.com/watch?v=DFv3sRnmHB0}
+```{r Maggie}
+Maggie = c("I ain't gonna work on Maggie's farm no more
+No, I ain't gonna work on Maggie's farm no more
+Well, I wake up in the morning, fold my hands and pray for rain
+I got a head full of ideas that are drivin' me insane
+It's a shame the way she makes me scrub the floor
+I ain't gonna work on Maggie's farm no more
+I ain't gonna work for Maggie's brother no more
+No, I ain't gonna work for Maggie's brother no more
+Well, he hands you a nickel, he hands you a dime
+He asks you with a grin if you're havin' a good time
+Then he fines you every time you slam the door
+I ain't gonna work for Maggie's brother no more
+I ain't gonna work for Maggie's pa no more
+No, I ain't gonna work for Maggie's pa no more
+Well, he puts his cigar out in your face just for kicks
+His bedroom window, it is made out of bricks
+The national guard stands around his door
+Ah, I ain't gonna work for Maggie's pa no more
+I ain't gonna work for Maggie's ma no more
+No, I ain't gonna work for Maggie's ma no more
+Well, she talks to all the servants about man and God and law
+Everybody says, she's the brains behind pa
+She's sixty-eight but she says she's fifty-four
+I ain't gonna work for Maggie's ma no more
+I ain't gonna work on Maggie's farm no more
+I ain't gonna work on Maggie's farm no more
+Well, I try my best to be just like I am
+But everybody wants you to be just like them
+They say sing while you slave and I just get bored
+Ah, I ain't gonna work on Maggie's farm no more")
+
+
+```
+
+
+
+
+We can create a plot of the word frequencies using the _ggplot2_ library.  ggplot2 is isimilar to piping in that we start a plot and then 'add' in features and style components.  ggplot2 is a whole course on its own.
+
+```{r, eval = FALSE}
+Maggie_df <- data_frame(line = 1, text = Maggie)
+Maggie_df %>% 
+  unnest_tokens(      output = words,input = text, token = "words")  %>%
+  count(words,sort=TRUE) %>%
+  mutate(words = reorder(words,n)) %>%
+  filter(n>3)%>%
+  # start the plotting part
+  ggplot(aes(words,n),size = 7) +   # this says that we are using data words and n
+  geom_col() +                      # this is the plot type
+  xlab(NULL) +                      # this turns off the x label since it makes things look messy
+  theme_minimal() +                 # style choice
+  coord_flip()                      # rotate the plot
+```
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,277 @@
+---
+title: "Day 1 Part 3 ML 4 DH"
+author: "Dave Campbell"
+date: '2019-06-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Introduction to Machine Learning in the Digital Humanities
+
+
+
+- Webscraping to get more data 
+- Data from Twitter
+
+
+# Webscraping Bob Dylan Lyrics:
+
+What if you ain't gonna work of Maggie's farm no more and instead you gotta serve somebody some text data?  Well don't get the Subterranean Homesick Blues, the answer is blowin' in the wind; use webscraping to get data coming in like a rolling stone.
+
+### Step 1: Find the webpage of interest.  We'll go here: https://www.bobdylan.com/songs/
+Make sure that it has what you need.
+
+### Step 2: Load the library rvest
+
+
+```{r}
+# You probably need to install it first.
+
+library(rvest)
+```
+
+### Step 3: Grab a song; here we will use Hurricane: https://www.bobdylan.com/songs/hurricane/
+```{r}
+
+Webpage = read_html("https://www.bobdylan.com/songs/hurricane/")
+
+
+```
+
+### Step 4: Open the inspector and see the html
+In our case we need the content starting at the html code 
+<div class="aticle-content lyrics">
+and ending at the next 
+</div>
+Note that webscraping is very fragile and will probably break the next time they update their webpage.  The following works but there are more efficient ways of doing things:
+
+```{r}
+TooMuchStuff = Webpage %>% 
+  html_nodes( "div") %>%
+  html_text()
+```
+
+It looks like element # 25 has the lyrics
+
+```{r}
+Lyrics = TooMuchStuff[25]
+
+```
+
+It is more robust to look for something more specific using the html code.  I tend to use the Safari Inspector, but the rvest Selectorgadget has a good strategy that runs some java code on top of whatever webpage.  To learn more in the R console try:
+
+```{r eval=FALSE}
+??Selectorgadget
+```
+
+
+```{r}
+
+Webpage = read_html("https://www.bobdylan.com/songs/hurricane/")
+title = Webpage %>% 
+  html_nodes( "h2.headline") %>%
+  html_text()
+credit = Webpage %>% 
+  html_nodes( "div.credit") %>%
+  html_text()
+lyrics = Webpage %>% 
+  html_nodes( "div.article-content.lyrics") %>%
+  html_text()
+album = Webpage %>% 
+  html_nodes( "div.information") %>%
+  html_text()
+
+```
+
+
+
+There remains some cleaning to do.  We will use regular expressions (have patience we'll get to details soon).  But we can now build a tibble with song lyrics, album (maybe just first album), credit, title using the above tricks.
+
+
+### Grab a different Bob Dylan song!
+Pick a song, any song.  Try this on your own!
+
+
+### Grab all of Bob Dylan's lyrics!
+See part 3.1 for a script to do this.  If you want to skip to the results then you can just load  all of Bob's lyrics:
+
+
+```{r, eval = FALSE}
+#title, credit, lyrics, album:
+load("AllBobLyrics.Rds")
+#the same but lyrics are tokenized by word
+load("AllBobTokenWords.Rds")
+```
+
+
+#### Try 
+Try counting the number of words per song.  Check out the sentiments within each album.
+
+
+
+
+# Twitter Data
+We can also obtain data from Twitter!
+Getting access is complicated.  It is useful to look through the help documentation for the _rtweet::auth_.  Twitter data is somewhat more advanced to obtain.
+
+
+
+```{r eval=FALSE}
+library(ROAuth)
+
+# Declare Twitter API Credentials
+consumer_key = "YOUR API KEY" 
+consumer_secret = "YOUR API SECRET" 
+access_token = "YOUR ACCESS TOKEN" 
+access_secret = "ACCESS TOKEN SECRET" 
+
+
+
+requestURL = "https://api.twitter.com/oauth/request_token"
+accessURL ="https://api.twitter.com/oauth/access_token"
+authURL ="https://api.twitter.com/oauth/authorize"
+my_oauth = OAuthFactory$new(consumerKey=consumer_key, # still need your key
+                             consumerSecret=consumer_secret, # still need your secret
+                             requestURL=requestURL, accessURL=accessURL, authURL=authURL)
+my_oauth$handshake()  # Send R to requested site to authenticate
+
+
+#From there you can just use this from now on:
+  
+create_token(consumer_key=consumer_key, consumer_secret=consumer_secret, 
+             access_token=access_token, access_secret=access_secret)
+```
+
+```{r echo = FALSE}
+library(rtweet)
+ImHere = getwd()
+if(strsplit(ImHere,"/")[[1]][2]=="Users"){
+  path2 = "/Users/iamdavecampbell/Dropbox/Pulling Twitter/"
+}else{
+  path2 = "/local-scratch2/data/dave/Dropbox/Pulling Twitter/"
+}
+ls()
+source(paste(path2,'TwitterAuth.R',sep=""))
+```
+
+
+
+
+Finally we are able to search for a hashtag:
+
+```{r, eval = FALSE}
+DHSI2019 = search_tweets("#dhsi2019")
+
+```
+
+
+And we can simplify the output into just information about the people who are tweeting: hashtag
+```{r, eval = FALSE}
+users_data(DHSI2019)
+```
+
+
+We can also look into the number of retweets per tweet for tweets that were retweeted:
+```{r, eval = FALSE}
+ggplot(DHSI2019,     # data to use
+       aes(retweet_retweet_count)) +   
+  geom_bar(show.legend = FALSE) 
+  
+```
+
+Or the number of followers that users have:
+
+```{r, eval = FALSE}
+ggplot(DHSI2019,     # data to use
+       aes(friends_count)) +   
+  stat_density(show.legend = FALSE) 
+  
+```
+
+
+
+From here we can use regular expressions to dig into the Tweet text and clean things up a bit.
+
+
+
+```{r, eval = FALSE}
+
+Tweettext = 
+DHSI2019$text  %>%
+#Remove urls and punctuation:
+# First we will remove retweet entities from tweets
+str_replace(pattern="(RT|via)((?:\\b\\W*@\\w+)+)", replacement = " ")  %>%
+# remove all the punctuation except apostrophe 
+  #NOTE we want to exclude the appostrophe when 'looking ahead' through punctuation, so we need perl
+sub(pattern="(?!')[[:punct:]]", replacement = "",perl = T)  %>%
+# remove all the control chracters, like \n or \r
+str_replace(pattern="[:cntrl:]",  replacement = "")%>%
+# remove lone numbers that aren't attached to any letters, we need only text for now
+str_replace(pattern="\\b[:digit:]+\\b", "") %>%
+# convert to lower case
+str_to_lower()   %>%
+# remove url links
+str_replace(pattern="http.*\\b", "")%>%
+# remove unnecessary spaces (white spaces, tabs etc)
+str_replace(pattern="[ \t]{2,}", " ")%>%
+str_replace(pattern="^\\s+|\\s+$", "")
+  
+  
+  
+
+#put back in some basic info:
+TweetTibble = tibble(line = 1:length(Tweettext), text = Tweettext, created_at = DHSI2019$created_at, screen_name = DHSI2019$screen_name)
+# split into words.
+
+TweetTibble %>%
+  unnest_tokens(      output = individualwords,input = text, token = "ngrams", n=2)  %>%
+  count(individualwords,sort = TRUE)
+
+```
+
+
+There are often a lot of useless words.  We may want to remove them to do anything meaningful.
+
+
+```{r, eval = FALSE}
+
+
+
+FewerWordsCounted = TweetTibble %>%
+  unnest_tokens(      output = word,input = text, token = "words")  %>%
+     anti_join(stop_words) %>%
+  count(word,sort = TRUE)
+ 
+
+```
+
+We can make a wordcloud of the occurences
+
+```{r, eval = FALSE}
+
+
+library(wordcloud)
+
+par(mar=rep(0, 4))
+plot.new()
+text(x=0.5, y=0.5, "Commonly used words from Amstat Tweets" )
+wordcloud(FewerWordsCounted$word,FewerWordsCounted$n,
+          colors = rainbow(8), min.freq = 2)
+```
+
+
+
+
+
+#### Try 
+Check out the sentiments within each Tweet.  Do people get Hangry?  Plot the sentiment with respect to time.
+
+# Other Twitter pieces that might be useful:
+
+Find the names of people who are mentioned in tweets
+```{r,eval = FALSE }
+DHSI2019$mentions_screen_name
+
+```
