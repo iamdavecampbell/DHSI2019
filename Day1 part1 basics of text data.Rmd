@@ -1,6 +1,6 @@
 ---
-title: "Day 1 Part 1 ML 4 DH"
-author: "Dave Campbell"
+title: "Day 1 Part 1 ML 4 DH 2019"
+author: "Dave Campbell, dac5@sfu.ca, @iamdavecampbell"
 date: '2019-06-08'
 output: html_document
 ---
@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Introduction to Machine Learning in the Digital Humanities
 
-## Day 1
+## Day 1 Part 1
 
 # Today
 
@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE)
 - Sentiment analysis
 - Inference
 - Show some plots and look at sentiment
-
+- Basic Insights
 
 # By the end of today you should be able to
 
@@ -32,7 +32,9 @@ knitr::opts_chunk$set(echo = TRUE)
 - Automatically decide who is the antagonist / protagonist from a Shakespeare play
 - Understand that everything, including machine analysis, has limits
 
-
+# In this part:
+- Data structures
+- Tidy text format
 
 ## Getting started:
 Visit [rstudio.cloud](https://rstudio.cloud) for easy access to RStudio.  Sign up... It's free (for now).  If you already have Rstudio on your machine, great!  Use whichever version you like.
@@ -258,18 +260,10 @@ Macbeth %>%
 The _filter_ command is looking for a logical (TRUE/FALSE) condition.  The condition is determined through _grepl_ (more about this later) to look for the pattern in quotes.
 
 
-#### Who has the most lines in MacBeth?
+#### Try: Who has the most lines in MacBeth?
 
 Take a look at the raw text from Act 1 Scene 1.  Which token format is most useful for figuring out who has the most conversation segments?  Remember that unless the task takes way too long, it's ok to get the machine to count a lot of things that don't matter to us. 
 
-
-```{r, echo = FALSE, eval= FALSE}
-
-Macbeth %>% 
-  unnest_tokens(      output = sentences,input = text, token = "sentences")  %>%
-  count(sentences,sort=TRUE)
-  
-```
 
 
 #### Maggie's Farm
@@ -331,6 +325,10 @@ Maggie_df %>%
 
 
 
+
+
+
+#### Try: What are the most common tokens in Macbeth?
 
 
 

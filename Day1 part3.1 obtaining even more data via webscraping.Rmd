@@ -1,0 +1,76 @@
+---
+title: "Day 1 Part 3.1 ML 4 DH 2019"
+author: "Dave Campbell, dac5@sfu.ca, @iamdavecampbell"
+date: '2019-06-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+In this part:
+
+- Showing a larger webscraping routine
+
+### Step 5: Let's get all of Bob Dylan's lyrics!
+Here we go to https://www.bobdylan.com/songs/ and find all of the links to songs.  Then we visit each song link and extract its lyrics.  We do this by first finding links and then creating a _for loop_ that will allow us to go through all links one at a time.  Note that webscraping is fragile, often breaks, and stops working when a webpage is updated in a new style.
+
+
+The process is simple but takes a lot of trial an error.  We need to look at the original webpage.  Using the inspector or the _selectorgadget_ from the _rvest_ library to help us figure out where in the html code the useful information is stored.  Then we target these specific pieces.  
+
+Using piping makes it easy to focus in on a chunk of html code at a time.  It also allows us to run pieces and build on code until we have what we need.
+
+
+
+```{r, eval = FALSE}
+SongWebpage = read_html("https://www.bobdylan.com/songs/")
+Allsongs = SongWebpage %>% 
+             html_nodes("div.line.line_detail") 
+  
+
+#Make a place to put everything:
+AllBob = tibble(title =  NA, credit = NA, lyrics = NA, album = NA,.rows = length(Allsongs))
+
+
+for(song in 1:length(Allsongs)){
+  link = Allsongs[song]%>%
+        html_nodes("span.song")%>% 
+        html_nodes("a") %>% 
+        html_attr("href")  
+  #Sys.sleep(rpois(1,1))
+  Webpage = read_html(link)
+    AllBob$title[song] = Webpage %>% 
+      html_nodes( "h2.headline") %>%
+      html_text()
+    AllBob$credit[song] = Webpage %>% 
+      html_nodes( "div.credit") %>%
+      html_text()
+    AllBob$lyrics[song] = Webpage %>% 
+      html_nodes( "div.article-content.lyrics") %>%
+      html_text()
+    AllBob$album[song] = (Webpage %>% 
+      html_nodes( "div.information") %>%
+      html_text())[1]
+}
+
+### Some data cleaning; to get rid of formatting
+# extra \t white space in the lyrics
+AllBob$lyrics = gsub(AllBob$lyrics,pattern="(\\t)+",replacement = "")
+# extra white space (\s) and formatted white space (\t), line breaks (\n) and the words 'Written by:'
+AllBob$credit = gsub(AllBob$credit,pattern="(^\\s+)|(\\s+$)|(\\t+)|(\\n)+|(Written by: )",replacement = "")
+# extra \t white space and line breaks \n in the album name.  We also don't care about the words '(Original Release)'
+AllBob$album = gsub(AllBob$album,pattern="(\\t+)|(\\n)+|(\(Original Release\))",replacement = "")
+
+
+save("AllBob",file = "AllBobLyrics.Rds")
+
+
+AllBobTokenWords  = unnest_tokens(AllBob,output = word,input = lyrics, token = "words")
+
+save("AllBobTokenWords",file = "AllBobTokenWords.Rds")
+
+```
+
+

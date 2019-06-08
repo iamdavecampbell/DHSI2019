@@ -1,9 +1,16 @@
 ---
-title: "Day 1 Part 2 ML 4 DH"
-author: "Dave Campbell"
+title: "Day 1 Part 2 ML 4 DH 2019"
+author: "Dave Campbell, dac5@sfu.ca, @iamdavecampbell"
 date: '2019-06-08'
 output: html_document
 ---
+
+# In this part
+
+- Regular Expressions
+- Sentiment Analysis
+- Inference
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -72,13 +79,6 @@ gutenberg_works(grepl(author,pattern =  "Austen"))
 #### Let's find Herbert George Wells books!
 To make sure that we obtain only the author that we want books, let's count the unique authors that were found.
 
-```{r, echo = FALSE, eval = FALSE}
-gutenberg_works(str_detect(author, "Wells"))  %>% count(author)
-
-
-gutenberg_works(str_detect(author, "Wells, H. G."))  %>% count(author)
-
-```
 
 
 #### Searching without a care in the capital

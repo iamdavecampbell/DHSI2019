@@ -1,6 +1,7 @@
 ---
-title: "Day 1 Part 3 ML 4 DH"
-author: "Dave Campbell"
+title: "Day 1 Part 3 ML 4 DH 2019"
+author: "Dave Campbell, dac5@sfu.ca, @iamdavecampbell"
+
 date: '2019-06-08'
 output: html_document
 ---
@@ -10,10 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Introduction to Machine Learning in the Digital Humanities
 
-
+# In this part
 
 - Webscraping to get more data 
 - Data from Twitter
+- Wordclouds!
 
 
 # Webscraping Bob Dylan Lyrics:
@@ -90,7 +92,7 @@ album = Webpage %>%
 There remains some cleaning to do.  We will use regular expressions (have patience we'll get to details soon).  But we can now build a tibble with song lyrics, album (maybe just first album), credit, title using the above tricks.
 
 
-### Grab a different Bob Dylan song!
+### Try: Grab a different Bob Dylan song!
 Pick a song, any song.  Try this on your own!
 
 
@@ -194,8 +196,6 @@ ggplot(DHSI2019,     # data to use
 
 From here we can use regular expressions to dig into the Tweet text and clean things up a bit.
 
-
-
 ```{r, eval = FALSE}
 
 Tweettext = 
@@ -268,6 +268,9 @@ wordcloud(FewerWordsCounted$word,FewerWordsCounted$n,
 #### Try 
 Check out the sentiments within each Tweet.  Do people get Hangry?  Plot the sentiment with respect to time.
 
+#### Try
+Check out another hashtag.  Note that there are limits to how many Tweets the API will let you obtain.
+
 # Other Twitter pieces that might be useful:
 
 Find the names of people who are mentioned in tweets
@@ -275,3 +278,24 @@ Find the names of people who are mentioned in tweets
 DHSI2019$mentions_screen_name
 
 ```
+
+
+
+#### We may be interested in time of tweet:
+```{r, eval = FALSE}
+ggplot(mutate(DHSI2019,index=1:dim(DHSI2019)[1]), aes(y=created_at, x=index))+
+  geom_point()
+
+
+```
+
+#### We may be interested in time components stripping out the day and just looking at hour of the day of tweet:
+
+```{r, eval = FALSE}
+JustHourOfDay = as.numeric(difftime(DHSI2019$created_at, trunc(DHSI2019$created_at, "days"), Sys.timezone(), "hours"))
+JustHourOfDay[JustHourOfDay<0] = 24+JustHourOfDay[JustHourOfDay<0]
+hist(JustHourOfDay,24)
+```
+
+
+
