@@ -10,6 +10,7 @@ Part 1:
  - tidytext
  - tokenization
  - word counts
+ 
  View the html:
 http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part1_basics_of_text_data.html
  
@@ -19,17 +20,20 @@ http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/m
  - Regular Expressions for searching, replacing, and cleaning up text
  - sentiment analysis 3 ways
  - inference
+ 
  View the html:
 http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part2_regular_expressions.html
  
  Part 3:
  - Data from webscraping
  - Twitter Data
+ 
  View the html:
 http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part3.1_obtaining_even_more_data_via_webscraping.html
  
  Part 3.1:
  - More webscraping
+ 
  View the html:
 http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part3_obtaining_more_data__webscraping_and_Twitter_.html
  
