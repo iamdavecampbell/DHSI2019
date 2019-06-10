@@ -28,13 +28,12 @@ http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/m
  - Data from webscraping
  - Twitter Data
  
- View the html:
-http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part3.1_obtaining_even_more_data_via_webscraping.html
+ View the html: http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part3_obtaining_more_data__webscraping_and_Twitter_.html
+
  
  Part 3.1:
  - More webscraping
  
- View the html:
-http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part3_obtaining_more_data__webscraping_and_Twitter_.html
+ View the html: http://htmlpreview.github.io/?https://github.com/iamdavecampbell/DHSI2019/blob/master/Day1_part3.1_obtaining_even_more_data_via_webscraping.html
  
 
