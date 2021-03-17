@@ -197,7 +197,8 @@ gutenberg_works(str_detect(author, "\\(.*\\)"))  %>% count(author)%>%
       gutenberg_download(meta_fields = "title")
 # meta fields lets us keep track of additional information, here I'm keeping the book title name
 
-  JaneBooks = gutenberg_download(gutenberg_works(author == "Austen, Jane"))
+  #equivalent to 
+# JaneBooks = gutenberg_download(gutenberg_works(author == "Austen, Jane"),meta_fields = "title")
   
 ```
  
@@ -239,14 +240,16 @@ Let's take a look at the sentiment as it evolves through Jane Austin Books.  Her
 
 
 ```{r, eval = FALSE}
-
-tidy_books = JaneBooks %>%
+# remove the "complete works" and the "letters"
+(unique_titles = tidy_books %>% select(title)%>% unique())
+tidy_books = JaneBooks %>% 
+  filter(!title %in% unique_titles$title[9:10])%>%
   group_by(title) %>%
   mutate(linenumber = row_number(),
          chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]", 
                                                  ignore_case = TRUE)))) %>%
   ungroup() %>%
-  unnest_tokens(word, text)
+  unnest_tokens(word, text) 
 
 ```
 
@@ -302,7 +305,7 @@ Let's take a look at AFINN.
 jane_austen_afinn = tidy_books %>%
   inner_join(get_sentiments("afinn")) %>% 
   group_by(title, index = linenumber %/% 80) %>% 
-  summarise(sentiment = sum(score)) %>% 
+  summarise(sentiment = sum(value)) %>% 
   mutate(method = "AFINN")
 
 
